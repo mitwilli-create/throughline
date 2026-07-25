@@ -1,5 +1,5 @@
 @AGENTS.md
-<!-- Add anything Claude Code specific that other agents dont need. -->
+<!-- Add anything Claude Code specific that other agents don't need. -->
 
 <!--
 AGENTS.md is the single source of truth for this repo (Agentic AI Foundation standard,
