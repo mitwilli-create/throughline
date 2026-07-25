@@ -16,11 +16,11 @@ Every piece targets ONE primary audience. Cross-post adaptations may shift the f
 **Who:** Technical-adjacent makers: indie hackers, PMs who ship, designers using Cursor/Claude Code, ops people automating. Live on X, LinkedIn, YouTube, Substack, Discord communities.
 **What earns their attention:** "Here's exactly how I did it" with steps they can copy. Cost transparency ($X to build Y). Before/after workflow comparisons.
 **What dies:** Pure theory, gatekeeping jargon without a bridge.
-**Mitchell's edge:** He is the archetype — non-traditional path into building. "Skills, MCPs, tools oh my," "memory files," "making AI give you what you want" are for them.
+**Mitchell's edge:** He is the archetype: non-traditional path into building. "Skills, MCPs, tools oh my," "memory files," "making AI give you what you want" are for them.
 **Register:** Generous senior peer who remembers being confused.
 
 ## 3. Newly AI-Enabled
-**Who:** Professionals just discovering AI leverage: teachers, tradespeople, small business owners, mid-career folks. Live on TikTok, YouTube, Facebook, LinkedIn, general Reddit.
+**Who:** Professionals just discovering what AI can do for their work: teachers, tradespeople, small business owners, mid-career folks. Live on TikTok, YouTube, Facebook, LinkedIn, general Reddit.
 **What earns their attention:** One concrete problem solved on screen, money/time saved in dollars and hours, "you don't need to be technical" proof, warmth.
 **What dies:** Jargon, dev-culture in-jokes, anything requiring a terminal in the first 60 seconds.
 **Mitchell's edge:** Journalist's translation instinct + genuine democratization conviction. "AI for blue collar workers," "change the law with AI," "live consult with a family member" are made for them.

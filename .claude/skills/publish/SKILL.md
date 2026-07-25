@@ -13,7 +13,7 @@ Inputs you need up front: the canonical draft file (e.g. `drafts/<slug>/master.m
 
 Run all four; do not proceed past a failure.
 
-1. **Voice + published length:** `node scripts/voice-gates.mjs <canonical-draft> --platform substack --published` exits 0. The `--published` flag counts the true body (::: marker blocks stripped); a raw count false-trips the ceiling.
+1. **Craft + voice + published length:** `node scripts/writing-craft-gate.mjs <canonical-draft> article` exits 0, then `node scripts/voice-gates.mjs <canonical-draft> --platform substack --published` exits 0. Re-run content review if the craft gate revised the file. The `--published` flag counts the true body (::: marker blocks stripped); a raw count false-trips the ceiling.
 2. **Adaptations current:** `node scripts/check-adaptation-staleness.mjs <draft-dir> --master <canonical-draft-filename>` exits 0. Any STALE / LIKELY-STALE adaptation means the platform version was built from an older essay: regenerate it via `/platform-adapt` before promoting the cross-post. This is the guard against shipping an old-essay LinkedIn promo.
 3. **Review verdict:** `/content-review` has recorded READY for the canonical draft.
 4. **Assets present:** every image referenced by a `:::image` block exists in `<draft-dir>/assets/`.
