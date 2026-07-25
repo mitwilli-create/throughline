@@ -13,6 +13,9 @@ exports/
 # Quarantine inbox: community skills under review are not ours to commit
 .claude/skills-inbox/
 
+# Private local craft lessons and rejected language.
+.writing-coach/
+
 # OS / editor noise
 .DS_Store
 node_modules/
