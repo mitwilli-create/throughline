@@ -56,3 +56,20 @@ test('content gate fails closed', () => {
     /writing craft blocked/,
   );
 });
+
+test('content gate rejects an unknown success state', () => {
+  assert.throws(
+    () => gateContentWriting({
+      text: 'The draft.',
+      artifactType: 'article',
+      artifactId: 'story-master',
+      projectRoot: '/tmp/content',
+      run: () => ({
+        status: 0,
+        stdout: JSON.stringify({ decision: 'partial', revisedText: 'The draft.' }),
+        stderr: '',
+      }),
+    }),
+    /writing craft blocked/,
+  );
+});

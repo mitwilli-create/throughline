@@ -55,7 +55,14 @@ export function gateContentWriting({
   } catch {
     throw new Error(`writing craft failed: ${result.stderr?.trim() || 'invalid response'}`);
   }
-  if (result.status !== 0 || payload.decision === 'failed') {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error(`writing craft failed: ${result.stderr?.trim() || 'invalid response'}`);
+  }
+  if (
+    result.status !== 0
+    || !['pass', 'no-safe-improvement'].includes(payload.decision)
+    || typeof payload.revisedText !== 'string'
+  ) {
     throw new Error(`writing craft blocked ${artifactId}: ${payload.failure?.message || result.stderr?.trim() || 'gate failure'}`);
   }
   return {
