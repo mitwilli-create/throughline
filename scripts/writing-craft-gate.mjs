@@ -6,11 +6,12 @@ import { basename, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const DEFAULT_CRAFT_ROOT = '/Users/mitchellwilliams/Documents/writing-craft';
+const DEFAULT_CRAFT_ROOT = resolve(ROOT, '..', 'writing-craft');
 
 export function isContentArtifact(path) {
   const normalized = path.replaceAll('\\', '/');
-  return normalized.endsWith('.md')
+  return normalized.startsWith('drafts/')
+    && normalized.endsWith('.md')
     && basename(normalized).toLowerCase() !== 'notes.md'
     && !normalized.includes('/.render/');
 }
@@ -42,8 +43,12 @@ export function gateContentWriting({
       input: JSON.stringify(request),
       encoding: 'utf8',
       maxBuffer: 20 * 1024 * 1024,
+      timeout: 180_000,
     },
   );
+  if (result.error || result.signal) {
+    throw new Error(`writing craft failed: ${result.error?.message || `terminated by ${result.signal}`}`);
+  }
   let payload;
   try {
     payload = JSON.parse(result.stdout);

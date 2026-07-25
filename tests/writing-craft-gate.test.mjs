@@ -10,7 +10,9 @@ test('content prose is eligible while notes and render output bypass', () => {
   assert.equal(isContentArtifact('drafts/story/master.md'), true);
   assert.equal(isContentArtifact('drafts/story/linkedin.md'), true);
   assert.equal(isContentArtifact('drafts/story/NOTES.md'), false);
-  assert.equal(isContentArtifact('drafts/story/.render/body.html'), false);
+  assert.equal(isContentArtifact('drafts/story/.render/body.md'), false);
+  assert.equal(isContentArtifact('.render/body.md'), false);
+  assert.equal(isContentArtifact('AGENTS.md'), false);
 });
 
 test('content gate is publish-blocking and returns accepted text', () => {
