@@ -1,0 +1,9 @@
+Research question (content-ops skill sourcing, 2026-07-05):
+
+We need to source or design two Claude Code skills for a personal content engine (Substack/LinkedIn/X/HN/Reddit/TikTok/YT), replacing two earlier in-house skills the operator judged unreliable. Find the best CURRENT (2026) practices, frameworks, and concrete community artifacts, with verifiable evidence (GitHub stars, adoption, author track record):
+
+1. INTERVIEW-DRIVEN CO-WRITING: workflows where the AI interviews the author (5-10 targeted questions), then assembles a draft primarily from the author's VERBATIM language, marking AI-written connective tissue explicitly. Goal: voice preservation for a professional journalist who wants his own words to be the raw material, not the correction layer. What exists: skills, prompt frameworks, "as-told-to" or ghostwriter-interview tools, voice-cloning-via-transcript approaches (text, not audio)? What are the documented failure modes (leading questions, paraphrase drift, over-smoothing)?
+
+2. AUTONOMOUS DRAFT-POLISH LOOPS: critic/author refinement loops with deterministic quality gates and measurable stop conditions. Known failure modes to address from prior in-house experience: convergence-impossible runaway (loop never terminates, burns budget), polish loops that PRESERVE fabricated claims while improving style, critic-praise convergence without genuine dissent, and voice homogenization (polish makes text sound less like the author each round). What architectures, termination criteria, eval-gated loops, or community skills demonstrably avoid these?
+
+For both: name specific repos/tools/prompts with evidence, say what to adopt vs author in-house, and identify what does NOT survive scrutiny (unverifiable popularity claims get downgraded). The operator's stack: Claude Code skills (SKILL.md standard), promptfoo eval harness, deterministic voice gates (em-dash/banned-term/length), git + PR review gate.

@@ -9,7 +9,7 @@ Directive from Mitchell, 2026-07-05 (paraphrased intent): the career-ops `apply-
 3. **Design:** `/agent-architecture` design doc answering, at minimum: adopt vs author per capability; how the interview skill preserves verbatim language (and marks AI bridges); polish-loop termination criteria that structurally prevent the four known failure modes named in the research prompt (runaway loops, fabrication-preserving polish, praise-convergence, voice homogenization); how both integrate with existing surfaces (voice-gates, prompt-eval, /draft-post, /content-review) without duplicating them.
 4. **Author** per the design, through the authored-skill flow (AGENTS.md 4b) or community-adoption flow (rule 4) depending on what the evidence says wins.
 5. **Test with evidence:** prompt-eval golden cases + a deliberately-pathological fixture per failure mode (e.g., a draft containing a planted fabrication that polish must FLAG not smooth; an interview transcript whose assembly must stay >70% verbatim by diff).
-6. **Qodo gate:** PR review must be clean (or findings remediated) BEFORE promotion; ledger rows; Mitchell merges.
+6. **Local QA gate:** tests, static checks, security checks, and local review skills must be clean, or findings remediated, before promotion; ledger rows; Mitchell merges. Qodo is fully halted.
 
 ## Context the builder session needs
 

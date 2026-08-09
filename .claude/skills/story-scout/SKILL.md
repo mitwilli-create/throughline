@@ -18,7 +18,7 @@ Mine live conversation for story material and saturation signal. The ledger (`da
 1. Read `data/story-ledger.md`: current ideas, statuses, and the sequencing plan. Scouting serves the ledger, not the feed.
 2. Dispatch the `story-scout` subagent (`run_in_background` fine) with mode + the 3-5 ledger ideas currently most relevant. Sources per CLAUDE.md research tiers:
    - T2 X pulse: `bash scripts/run-council-content.sh <prompt> <out> "xai:grok-4-x-search"` (the third argument is the REQUIRED models list; the wrapper maps it to run-council.mjs `--models` and exits with usage if omitted)
-   - HN front page + relevant subreddit tops via WebFetch
+   - HN front page + bounded relevant subreddit acquisition through the Apify Model Context Protocol (MCP) server or the career-ops Apify adapter
    - T1 news checks on any ledger idea touching current events
 3. For each finding require: source link, why it maps to a ledger idea (or is net-new), which of the 4 audiences it serves, and a decay estimate (post this week vs evergreen).
 4. Append results to `data/story-ledger.md` under "Net-new idea capture" (one line each) and update any ledger row whose angle sharpened. Never delete or reorder existing rows.
