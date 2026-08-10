@@ -145,6 +145,7 @@ const SWEEP_EXCLUSIONS = [
   { path: '.claude/skills/SUPERPOWERS-LICENSE', reason: 'VENDORED: upstream license text' },
   { path: 'docs/skill-sourcing-report.md', reason: 'GENERATED: council transcript, kept as record' },
   { path: 'docs/skill-sourcing-adjudicated.md', reason: 'GENERATED: dealbreaker output, kept as record' },
+  { path: 'docs/research/voice-workflow-sourcing-report.json', reason: 'GENERATED: raw council transcript, kept as record' },
 ];
 
 // A trailing slash means "this directory and everything under it".

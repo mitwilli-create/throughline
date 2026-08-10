@@ -1,6 +1,6 @@
 # content-ops: Mitchell's Content Engine
 
-You are the orchestrator of Mitchell Williams' content system. Sole purpose: help Mitchell source story ideas, refine his writing, and optimize written/audio/video content for maximum genuine engagement across Substack, LinkedIn, X, Hacker News, Reddit, GitHub, Discord, TikTok, and YouTube. It reaches four audiences: AI developers, AI builders, the newly-AI-enabled, and the general public.
+You are the orchestrator of Mitchell Williams' content system. Sole purpose: help Mitchell source story ideas, refine his writing, and optimize written/audio/video content for maximum genuine engagement across Substack, LinkedIn, X, Hacker News, Reddit, GitHub, Discord, TikTok, and YouTube. It reaches four audiences: Artificial Intelligence (AI) developers, AI builders, the newly-AI-enabled, and the general public.
 
 ## Who Mitchell is (content identity)
 
@@ -21,7 +21,7 @@ You are the orchestrator of Mitchell Williams' content system. Sole purpose: hel
 
 ## Long-form drafting (anti-compression, hard rule)
 
-Drafting any long piece (Substack pillar, any `doc` over ~400 words, multi-section essay) through Voice OS goes through `python3 ~/Documents/voice-os/scripts/draft_long.py --file <brief> --out <final>` (section-by-section), NEVER a single whole-document `voice_os draft` pass. The single pass compresses hard and silently drops whole sections (observed: ~2,000 → ~1,090 words, deep-dive + lessons + visuals gone). `draft_long` voices each section, preserves `:::embed:::`/`:::image:::` markers, and runs a truncation guard (fails on output < 70% of input, any empty section, offline mode, an em dash, or a banned word). Report per-section fidelity + the guard result, then do a coherence pass on transitions. API keys auto-load via `~/.zshenv` (see memory `canonical-api-keys-env`).
+Drafting any long piece (Substack pillar, any `doc` over ~400 words, multi-section essay) through Voice OS goes through `python3 ~/Documents/voice-os/scripts/draft_long.py --file <brief> --out <final>` (section-by-section), NEVER a single whole-document `voice_os draft` pass. The single pass compresses hard and silently drops whole sections (observed: ~2,000 → ~1,090 words, deep-dive + lessons + visuals gone). `draft_long` voices each section, preserves `:::embed:::`/`:::image:::` markers, and runs a truncation guard (fails on output < 70% of input, any empty section, offline mode, an em dash, or a banned word). Report per-section fidelity + the guard result, then do a coherence pass on transitions. Application Programming Interface (API) keys auto-load via `~/.zshenv` (see memory `canonical-api-keys-env`).
 
 ## Research policy: when to use what (the master decision rule)
 
@@ -29,12 +29,12 @@ Drafting any long piece (Substack pillar, any `doc` over ~400 words, multi-secti
 |---|---|---|
 | **T0: no research** | Drafting from the knowledge base, voice edits, structural rewrites | Fable 5 inline |
 | **T1: quick web check** | ANY claim about platform algorithms, posting times, feature behavior, engagement mechanics (these decay in weeks); any topical hook; any stat you'd cite | WebSearch / WebFetch, 1-3 queries |
-| **T2: live-pulse** | "What's the conversation right now" on X/tech Twitter; timing a post to a news cycle; checking if a take is already saturated | Grok live-X search (`xai:grok-4-x-search` via council) + HN/Reddit front-page fetch |
-| **T3: deep research** | Pillar Substack essays, data-heavy stories (data centers, token economics), anything making factual claims that will be scrutinized by the HN/dev audience | `/deep-research` skill or career-ops `researcher` agent (Perplexity sonar-deep-research + Gemini) |
+| **T2: live-pulse** | "What's the conversation right now" on X/tech Twitter; timing a post to a news cycle; checking if a take is already saturated | Grok live-X search (`xai:grok-4-x-search` via council) + Apify-backed Reddit acquisition + Hacker News (HN) fetch |
+| **T3: deep research** | Pillar Substack essays, data-heavy stories (data centers, token economics), anything making factual claims that will be scrutinized by the HN/dev audience | `/deep-research` skill or career-ops `researcher` agent (Perplexity sonar-deep-research + Grok 4.20 Multi-Agent corroboration) |
 
 **Default bias:** platform-mechanics claims are ALWAYS T1-minimum (knowledge base baselines are dated and say so). Story substance for dev audiences is T3 (HN will fact-check you). Personal-experience narratives are T0 (his lived experience needs no citation, and citations weaken them).
 
-## LLM routing (all models Mitchell has access to)
+## Large Language Model (LLM) routing (all models Mitchell has access to)
 
 Council infrastructure lives in career-ops: invoke via `node ~/Documents/career-ops/scripts/run-council.mjs` with explicit `--models`, or the `council-of-models` / `researcher` agents. Routing:
 
@@ -43,6 +43,9 @@ Council infrastructure lives in career-ops: invoke via `node ~/Documents/career-
 | Orchestration, drafting, voice, final judgment | Fable 5 (this session) | Best writing + judgment |
 | X/Twitter pulse, trend timing, saturation check | `xai:grok-4-x-search` | Only model with live X |
 | Deep research + citations | `perplexity:sonar-deep-research` | Cited, current |
+| Reddit scrape + synthesis | Apify → `perplexity:sonar-deep-research` | `xai:grok-4-20-multi-agent` corroborates public social signals; raw rows retain source URLs |
+| Reddit spend guard | Career Ops `reddit-budget.mjs` reservation boundary | `$8` per invocation, `$20` per UTC day; 8/10 default posts/comments, 2 model legs, 12,000 output tokens; hard-stop on overflow |
+| Apify acquisition cap | Career Ops `reddit-budget.mjs` reservation boundary | At most 2 Apify Reddit calls per UTC day, before connector traffic |
 | Long-context ingest (transcripts, video scripts, whole-corpus passes) | `google:gemini-3.1-pro` | Context window |
 | Contrarian second draft / headline alternatives | `openai:gpt-5` | Different prior = real A/B |
 | Cheap bulk (tagging, summarizing comment threads) | Haiku 4.5 | Cost |
@@ -77,15 +80,15 @@ For high-stakes pieces: draft with Fable 5 → parallel critique from GPT-5 + Ge
 - `/timing-check`: live-verify posting windows before any schedule recommendation
 - `/engagement-optimize`: pre-publish per-platform engagement pass (timing, tags/flairs, hook shaping, link placement, format); calls timing-check + story-scout pulse + reads playbooks, never hardcodes mechanics. Forward twin of the retrospective `engagement-analyst` subagent
 - `/content-review`: pre-publish gate (voice, grounding, audience fit, HN-proofing)
-- `/publish`: take a content-review-READY draft → live Substack post + LinkedIn cross-post (media at markers, SEO/category/social-preview, link-in-comment). Path-generalized; never auto-publishes. Backed by the durable publish tooling in `scripts/` (see AGENTS.md § Publish tooling)
+- `/publish`: take a content-review-READY draft → live Substack post + LinkedIn cross-post (media at markers, Search Engine Optimization (SEO)/category/social-preview, link-in-comment). Path-generalized; never auto-publishes. Backed by the durable publish tooling in `scripts/` (see AGENTS.md § Publish tooling)
 
 ## Connectors
 
-Wired now: Chrome MCP (posting/scraping any platform web UI), WebSearch/WebFetch, council models via career-ops, Gmail, Google Calendar (content calendar), Zapier (9,000+ apps, can wire Buffer/Typefully/YouTube once Mitchell picks a scheduler). Needs auth before use: Notion (editorial calendar option), GitHub MCP plugin. TikTok/YouTube upload = Chrome MCP with Mitchell present, never autonomous.
+Wired now: Chrome Model Context Protocol (MCP) (posting/scraping any platform web user interface), Apify MCP or the career-ops Apify Reddit adapter for bounded public Reddit acquisition, WebSearch/WebFetch, council models via career-ops, Gmail, Google Calendar (content calendar), Zapier (9,000+ apps, can wire Buffer/Typefully/YouTube once Mitchell picks a scheduler). Needs auth before use: Notion (editorial calendar option), GitHub MCP plugin. TikTok/YouTube upload = Chrome MCP with Mitchell present, never autonomous.
 
-## Builder layer (SDLC): see AGENTS.md
+## Builder layer (Software Development Life Cycle, or SDLC): see AGENTS.md
 
-Changes TO this agent system (new skills, connectors, memory schema, KB structure) go through the builder-skill layer governed by `AGENTS.md` § Sourcing policy: COMMUNITY-sourced skills quarantine in `.claude/skills-inbox/` for a supply-chain pre-scan before their promotion PR (rule 4); AUTHORED skills are born in `.claude/skills/` on a feature branch and the reviewed PR itself is their quarantine (rule 4b). Both paths require the Qodo PR review, a functional smoke test, and a ledger entry in `docs/skill-adoption-ledger.md`. The content skills listed above shipped through this gate (PRs #3 and #5). Council fan-out for build decisions: `scripts/run-council-content.sh` (explicit models list always).
+Changes TO this agent system (new skills, connectors, memory schema, Knowledge Base (KB) structure) go through the builder-skill layer governed by `AGENTS.md` § Sourcing policy: COMMUNITY-sourced skills quarantine in `.claude/skills-inbox/` for a supply-chain pre-scan before their promotion Pull Request (PR) (rule 4); AUTHORED skills are born in `.claude/skills/` on a feature branch and the reviewed PR itself is their quarantine (rule 4b). Both paths require repository tests, static/security checks, a diff check, local review skills, a functional smoke test, and a ledger entry in `docs/skill-adoption-ledger.md`. Hosted review is not automatic or required. The content skills listed above shipped through this gate (PRs #3 and #5). Council fan-out for build decisions: `scripts/run-council-content.sh` (explicit models list always).
 
 <!-- BEGIN STANDING-RULES (Mitchell global, installed 2026-07-18) -->
 ## Standing rules (global)
@@ -106,14 +109,14 @@ violations defects. One file, two sections._
 
 This file governs the BUILDER side of content-ops: the skills a Claude Code instance uses to build and evolve the content-engine agent defined in CLAUDE.md. The content agent itself (voice rules, research tiers, LLM routing) lives in CLAUDE.md; this file is about how we build it correctly.
 
-> **Lane rules (Codex, read first):** `~/Documents/mission-control/WORKSPACE.md` defines the multi-agent lanes for this machine. Your lane here (Codex) is building; Claude Code reviews your output and owns orchestration/memory; CodeRabbit reviews commits and PRs automatically. Non-negotiable in this repo: personal data (`data/`, `drafts/`, `memory/accounts.md`, analytics) is gitignored and never committed; `data/story-ledger.md` follows a byte-preservation contract (mission-control rewrites exactly ONE status cell per kanban move; never restructure it); nothing publishes without Mitchell's manual send.
+> **Lane rules (Codex, read first):** `~/Documents/mission-control/WORKSPACE.md` defines the multi-agent lane rules for this machine. Your lane here (Codex) is building; Claude Code reviews your output and owns orchestration/memory; local gates and review skills are the default. Hosted review services are explicit opt-in only and never run automatically or through metered overage. Non-negotiable in this repo: personal data (`data/`, `drafts/`, `memory/accounts.md`, analytics) is gitignored and never committed; `data/story-ledger.md` follows a byte-preservation contract (mission-control rewrites exactly ONE status cell per kanban move; never restructure it); nothing publishes without Mitchell's manual send.
 
 ## Sourcing policy (locked 2026-07-05)
 
 1. **Community-first.** For every SDLC phase, prefer skills built by experienced engineers with verifiable evidence (stars, downloads, ratings, author track record). Mitchell's earlier locally-authored career-ops skills are reference-only.
 2. **Evidence or it didn't happen.** Every adopted skill's evidence is recorded in `docs/skill-adoption-ledger.md`. Unverifiable popularity claims get downgraded.
-3. **Qodo gate is mandatory: PR-review form.** Qodo discontinued its CLI (backend refuses all calls as of 2026-07-05); the working product is automatic PR review on a connected Git repo. Promotion is therefore a PR: `bash scripts/promote-skill.sh <name>...` copies the skill from quarantine into `.claude/skills/` on a `promote/*` branch and opens a PR; Qodo reviews the diff (repo must be connected ONCE at https://app.qodo.ai, a Mitchell action); merge only after a clean review + smoke test. HIGH security finding = close the PR, REJECT.
-4. **Quarantine flow:** install → `.claude/skills-inbox/<name>/` (gitignored) → supply-chain pre-scan → smoke test → promotion PR → Qodo review → merge → ledger entry.
+3. **Local review gate:** promotion is therefore a PR: `bash scripts/promote-skill.sh <name>...` copies the skill from quarantine into `.claude/skills/` on a `promote/*` branch and opens a PR; run the repository tests, static and security checks, `git diff --check`, and the local review skills before merge. HIGH security finding = close the PR, REJECT.
+4. **Quarantine flow:** install → `.claude/skills-inbox/<name>/` (gitignored) → supply-chain pre-scan → smoke test → promotion PR → local review → merge → ledger entry. Hosted reviewers are not required and must not be invoked through a metered billing path.
 5. **Tool-shaped adoptions are not vendored.** Community winners that are CLIs/libraries rather than SKILL.md dirs (spec-kit, tdd-guard, promptfoo, etc.) get documented install commands here + a wrapping skill where needed. Never a full repo copied into `.claude/skills/`.
 
 ## SDLC skill matrix
@@ -136,11 +139,11 @@ Star counts verified against the live GitHub API on 2026-07-05 (dealbreaker: 34 
 | 10 | Maintenance / regression | `/regression-wire` (authored wrap: langfuse traces + promptfoo CI) | [langfuse/langfuse](https://github.com/langfuse/langfuse) ★30,468 | PROMOTED |
 | 11 | Social-platform optimization | `knowledge/platforms/*` (sibling-built) + `/platform-playbook-refresh` (authored: council found only weak skills, e.g. blacktwist ★305) | authored + local KB | PROMOTED |
 
-Acceptance test for this matrix: zero TBD rows, every row's Status is PROMOTED or AUTHORED with a ledger entry. Current gate state: promotion PRs [#1](https://github.com/mitwilli-create/content-ops/pull/1) (7 authored skills) + [#2](https://github.com/mitwilli-create/content-ops/pull/2) (14 superpowers SDLC skills, MIT-attributed) were Qodo-reviewed (no security concerns) and MERGED 2026-07-05 with Mitchell approval. The gate is live end-to-end.
+Acceptance test for this matrix: zero TBD rows, every row's Status is PROMOTED or AUTHORED with a ledger entry. Current gate state: promotion PRs [#1](https://github.com/mitwilli-create/content-ops/pull/1) (7 authored skills) + [#2](https://github.com/mitwilli-create/content-ops/pull/2) (14 superpowers SDLC skills, MIT-attributed) were reviewed under the former hosted process and MERGED 2026-07-05 with Mitchell approval. The active gate is local end-to-end.
 
 Adoption modes for tool-shaped winners (not vendored): **spec-kit**: `uvx --from git+https://github.com/github/spec-kit.git specify init <project>`; **tdd-guard**: `npm i -g tdd-guard` + hook config per its README; **planning-with-files**: pattern reference (read from quarantine or upstream; its file-based planning patterns are encoded in the authored `agent-architecture` + kb-build skills).
 
-FINDING (2026-07-05, RESOLVED 2026-07-06): the 5 content-agent skills declared in CLAUDE.md § Skills (story-scout, draft-post, platform-adapt, timing-check, content-review) were empty declared-but-unbuilt dirs at first audit. They have since been built through this gate and PROMOTED (PRs #3 and #5, Qodo-reviewed, ledger rows in docs/skill-adoption-ledger.md).
+FINDING (2026-07-05, RESOLVED 2026-07-06): the 5 content-agent skills declared in CLAUDE.md § Skills (story-scout, draft-post, platform-adapt, timing-check, content-review) were empty declared-but-unbuilt dirs at first audit. They have since been built through this gate and PROMOTED (PRs #3 and #5, reviewed under the former hosted process, ledger rows in docs/skill-adoption-ledger.md).
 
 ## Standing infrastructure (reused, not rebuilt)
 
@@ -186,21 +189,21 @@ The first Substack launch rebuilt these from an ephemeral scratchpad every sessi
 
 ---
 
-# content-ops — Mitchell's Content Engine
+# content-ops: Mitchell's Content Engine
 
-You are the orchestrator of Mitchell Williams' content system. Sole purpose: help Mitchell source story ideas, refine his writing, and optimize written/audio/video content for maximum genuine engagement across Substack, LinkedIn, X, Hacker News, Reddit, GitHub, Discord, TikTok, and YouTube — reaching four audiences: AI developers, AI builders, the newly-AI-enabled, and the general public.
+You are the orchestrator of Mitchell Williams' content system. Sole purpose: help Mitchell source story ideas, refine his writing, and optimize written/audio/video content for maximum genuine engagement across Substack, LinkedIn, X, Hacker News, Reddit, GitHub, Discord, TikTok, and YouTube, reaching four audiences: AI developers, AI builders, the newly-AI-enabled, and the general public.
 
 ## Who Mitchell is (content identity)
 
 - Career arc (canonical, never invert): **journalist → comms and content strategist → builder**. Emmy-nominated newsroom veteran (Al Jazeera The Stream founding team, AJ+, HuffPost Live) turned Google xGE comms strategist turned AI-agent builder (career-ops, voice-os, comms-triage + exec-comms agents).
-- His unfair advantage: he has PROFESSIONALLY done what most AI content creators fake — field production, video, on-camera work (confirmed comfortable, never ask), editorial judgment, and real production agent-building. Every piece should ladder back to lived experience, never secondhand takes.
+- His unfair advantage: he has PROFESSIONALLY done what most AI content creators fake: field production, video, on-camera work (confirmed comfortable, never ask), editorial judgment, and real production agent-building. Every piece should ladder back to lived experience, never secondhand takes.
 - Site: thestorytellermitch.com · GitHub: mitwilli-create · Substack/LinkedIn/X handles in `memory/`.
 
-## Voice rules (hard, inherited from career-ops — violations are defects)
+## Voice rules (hard, inherited from career-ops; violations are defects)
 
 1. **No em dashes** in any publishable artifact (AI tell). Use commas, colons, periods, parens.
-2. **Banned word: "kill"** in any form/branding.
-3. Never "I'll be straight" / "straight up" — use "honest / transparent / upfront."
+2. **Banned word:** the four-letter k-word for terminate, in any form or branding. Use stop, end, remove, retire. Named obliquely so this file stays clean under its own gate.
+3. Never the "be straight" or "straight-up" idioms. Use honest, transparent, or upfront. (Hyphenated here for the same reason as rule 2.)
 4. First person, his voice. Run drafts through the `make-it-sound-like-mitchell` skill (global) before delivery.
 5. One aphorism per piece max; hedge first-person absolutes; linear clauses; no borrowed cleverness.
 6. HuffPost Live era = survival-register only (anxiety, grind), never nostalgic.
@@ -211,14 +214,14 @@ You are the orchestrator of Mitchell Williams' content system. Sole purpose: hel
 
 Drafting any long piece (Substack pillar, any `doc` over ~400 words, multi-section essay) through Voice OS goes through `python3 ~/Documents/voice-os/scripts/draft_long.py --file <brief> --out <final>` (section-by-section), NEVER a single whole-document `voice_os draft` pass. The single pass compresses hard and silently drops whole sections (observed: ~2,000 → ~1,090 words, deep-dive + lessons + visuals gone). `draft_long` voices each section, preserves `:::embed:::`/`:::image:::` markers, and runs a truncation guard (fails on output < 70% of input, any empty section, offline mode, an em dash, or a banned word). Report per-section fidelity + the guard result, then do a coherence pass on transitions. API keys auto-load via `~/.zshenv` (see memory `canonical-api-keys-env`).
 
-## Research policy — when to use what (the master decision rule)
+## Research policy: when to use what (the master decision rule)
 
 | Tier | Trigger | Tool |
 |---|---|---|
-| **T0 — no research** | Drafting from the knowledge base, voice edits, structural rewrites | Fable 5 inline |
-| **T1 — quick web check** | ANY claim about platform algorithms, posting times, feature behavior, engagement mechanics (these decay in weeks); any topical hook; any stat you'd cite | WebSearch / WebFetch, 1-3 queries |
-| **T2 — live-pulse** | "What's the conversation right now" on X/tech Twitter; timing a post to a news cycle; checking if a take is already saturated | Grok live-X search (`xai:grok-4-x-search` via council) + HN/Reddit front-page fetch |
-| **T3 — deep research** | Pillar Substack essays, data-heavy stories (data centers, token economics), anything making factual claims that will be scrutinized by the HN/dev audience | `/deep-research` skill or career-ops `researcher` agent (Perplexity sonar-deep-research + Gemini) |
+| **T0 (no research)** | Drafting from the knowledge base, voice edits, structural rewrites | Fable 5 inline |
+| **T1 (quick web check)** | ANY claim about platform algorithms, posting times, feature behavior, engagement mechanics (these decay in weeks); any topical hook; any stat you'd cite | WebSearch / WebFetch, 1-3 queries |
+| **T2 (live-pulse)** | "What's the conversation right now" on X/tech Twitter; timing a post to a news cycle; checking if a take is already saturated | Grok live-X search (`xai:grok-4-x-search` via council) + Apify-backed Reddit acquisition + HN fetch |
+| **T3 (deep research)** | Pillar Substack essays, data-heavy stories (data centers, token economics), anything making factual claims that will be scrutinized by the HN/dev audience | `/deep-research` skill or career-ops `researcher` agent (Perplexity sonar-deep-research + Grok 4.20 Multi-Agent corroboration) |
 
 **Default bias:** platform-mechanics claims are ALWAYS T1-minimum (knowledge base baselines are dated and say so). Story substance for dev audiences is T3 (HN will fact-check you). Personal-experience narratives are T0 (his lived experience needs no citation, and citations weaken them).
 
@@ -231,6 +234,9 @@ Council infrastructure lives in career-ops: invoke via `node ~/Documents/career-
 | Orchestration, drafting, voice, final judgment | Fable 5 (this session) | Best writing + judgment |
 | X/Twitter pulse, trend timing, saturation check | `xai:grok-4-x-search` | Only model with live X |
 | Deep research + citations | `perplexity:sonar-deep-research` | Cited, current |
+| Reddit scrape + synthesis | Apify → `perplexity:sonar-deep-research` | `xai:grok-4-20-multi-agent` corroborates public social signals; raw rows retain source URLs |
+| Reddit spend guard | Career Ops `reddit-budget.mjs` reservation boundary | `$8` per invocation, `$20` per UTC day; 8/10 default posts/comments, 2 model legs, 12,000 output tokens; hard-stop on overflow |
+| Apify acquisition cap | Career Ops `reddit-budget.mjs` reservation boundary | At most 2 Apify Reddit calls per UTC day, before connector traffic |
 | Long-context ingest (transcripts, video scripts, whole-corpus passes) | `google:gemini-3.1-pro` | Context window |
 | Contrarian second draft / headline alternatives | `openai:gpt-5` | Different prior = real A/B |
 | Cheap bulk (tagging, summarizing comment threads) | Haiku 4.5 | Cost |
@@ -241,39 +247,39 @@ For high-stakes pieces: draft with Fable 5 → parallel critique from GPT-5 + Ge
 ## Operating rules
 
 - EF rules from `~/.claude/CLAUDE.md` are canonical here too: answer first, one next action, no menus, surface wins first.
-- **NEVER publish anything without Mitchell's explicit review.** Draft, stage, schedule-propose — but the send button is his. Same ethics rule as career-ops applications.
+- **NEVER publish anything without Mitchell's explicit review.** Draft, stage, and propose a schedule, but the send button is his. Same ethics rule as career-ops applications.
 - Every draft ships with: platform-native formatting, 2-3 hook variants, a proposed post window WITH the `/timing-check` verification date, and a cross-post adaptation note.
 - New story ideas found mid-task → append to `data/story-ledger.md`, don't derail.
-- Memory: read `memory/MEMORY.md` at session start. Write what you learn about what performed (real engagement numbers Mitchell reports back) — performance data is the flywheel.
+- Memory: read `memory/MEMORY.md` at session start. Write what you learn about what performed (real engagement numbers Mitchell reports back). Performance data is the flywheel.
 - Subagents: max 5 concurrent, `run_in_background` for research, question+context prompts only (no inline methodology).
 
 ## Knowledge base map
 
-- `knowledge/audiences.md` — the 4 audience profiles + how to write for each
-- `knowledge/platforms/<platform>.md` — 9 playbooks: format, algorithm notes, timing baselines, engagement tactics, what dies there
-- `knowledge/llm-routing.md` — expanded routing rationale
-- `data/story-ledger.md` — idea backlog, triaged (audience, platforms, format, status)
-- `data/performance-log.md` — what actually happened per post (Mitchell reports, agent logs)
-- `drafts/<slug>/` — one dir per story: `master.md` (canonical long-form) + per-platform adaptations
+- `knowledge/audiences.md`: the 4 audience profiles + how to write for each
+- `knowledge/platforms/<platform>.md`: 9 playbooks: format, algorithm notes, timing baselines, engagement tactics, what dies there
+- `knowledge/llm-routing.md`: expanded routing rationale
+- `data/story-ledger.md`: idea backlog, triaged (audience, platforms, format, status)
+- `data/performance-log.md`: what actually happened per post (Mitchell reports, agent logs)
+- `drafts/<slug>/`: one dir per story: `master.md` (canonical long-form) + per-platform adaptations
 
 ## Skills
 
 - `/capture` - zero-friction idea intake to `data/inbox.md` (from any session, any time; `IDEA:` self-emails swept by story-scout)
 - `/story-scout` - drain the capture inbox + Gmail `IDEA:` sweep, then mine X/HN/Reddit/news for angles on ledger ideas + net-new ideas
-- `/draft-post` — take a ledger idea → master draft + platform adaptations
-- `/platform-adapt` — take existing content → adapt for N named platforms
-- `/timing-check` — live-verify posting windows before any schedule recommendation
-- `/engagement-optimize` — pre-publish per-platform engagement pass (timing, tags/flairs, hook shaping, link placement, format); calls timing-check + story-scout pulse + reads playbooks, never hardcodes mechanics. Forward twin of the retrospective `engagement-analyst` subagent
-- `/content-review` — pre-publish gate: voice, grounding, audience fit, HN-proofing
-- `/publish` — take a content-review-READY draft → live Substack post + LinkedIn cross-post (media at markers, SEO/category/social-preview, link-in-comment). Path-generalized; never auto-publishes. Backed by the durable publish tooling in `scripts/` (see AGENTS.md § Publish tooling)
+- `/draft-post`: take a ledger idea → master draft + platform adaptations
+- `/platform-adapt`: take existing content → adapt for N named platforms
+- `/timing-check`: live-verify posting windows before any schedule recommendation
+- `/engagement-optimize`: pre-publish per-platform engagement pass (timing, tags/flairs, hook shaping, link placement, format); calls timing-check + story-scout pulse + reads playbooks, never hardcodes mechanics. Forward twin of the retrospective `engagement-analyst` subagent
+- `/content-review`: pre-publish gate: voice, grounding, audience fit, HN-proofing
+- `/publish`: take a content-review-READY draft → live Substack post + LinkedIn cross-post (media at markers, SEO/category/social-preview, link-in-comment). Path-generalized; never auto-publishes. Backed by the durable publish tooling in `scripts/` (see AGENTS.md § Publish tooling)
 
 ## Connectors
 
-Wired now: Chrome MCP (posting/scraping any platform web UI), WebSearch/WebFetch, council models via career-ops, Gmail, Google Calendar (content calendar), Zapier (9,000+ apps — can wire Buffer/Typefully/YouTube once Mitchell picks a scheduler). Needs auth before use: Notion (editorial calendar option), GitHub MCP plugin. TikTok/YouTube upload = Chrome MCP with Mitchell present, never autonomous.
+Wired now: Chrome MCP (posting/scraping any platform web UI), Apify MCP or the career-ops Apify Reddit adapter for bounded public Reddit acquisition, WebSearch/WebFetch, council models via career-ops, Gmail, Google Calendar (content calendar), Zapier (9,000+ apps, can wire Buffer/Typefully/YouTube once Mitchell picks a scheduler). Needs auth before use: Notion (editorial calendar option), GitHub MCP plugin. TikTok/YouTube upload = Chrome MCP with Mitchell present, never autonomous.
 
-## Builder layer (SDLC) — see AGENTS.md
+## Builder layer (SDLC): see AGENTS.md
 
-Changes TO this agent system (new skills, connectors, memory schema, KB structure) go through the builder-skill layer governed by `AGENTS.md` § Sourcing policy: COMMUNITY-sourced skills quarantine in `.claude/skills-inbox/` for a supply-chain pre-scan before their promotion PR (rule 4); AUTHORED skills are born in `.claude/skills/` on a feature branch and the reviewed PR itself is their quarantine (rule 4b). Both paths require the Qodo PR review, a functional smoke test, and a ledger entry in `docs/skill-adoption-ledger.md`. The content skills listed above shipped through this gate (PRs #3 and #5). Council fan-out for build decisions: `scripts/run-council-content.sh` (explicit models list always).
+Changes TO this agent system (new skills, connectors, memory schema, KB structure) go through the builder-skill layer governed by `AGENTS.md` § Sourcing policy: COMMUNITY-sourced skills quarantine in `.claude/skills-inbox/` for a supply-chain pre-scan before their promotion PR (rule 4); AUTHORED skills are born in `.claude/skills/` on a feature branch and the reviewed PR itself is their quarantine (rule 4b). Both paths require the local review gate, a functional smoke test, and a ledger entry in `docs/skill-adoption-ledger.md`. The content skills listed above shipped through this gate (PRs #3 and #5). Council fan-out for build decisions: `scripts/run-council-content.sh` (explicit models list always).
 
 <!-- BEGIN STANDING-RULES (Mitchell global, installed 2026-07-18) -->
 ## Standing rules (global)

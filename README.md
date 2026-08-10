@@ -5,7 +5,7 @@ Mitchell Williams' content engine: an agent system for sourcing story ideas, ref
 ## Layout
 
 - `CLAUDE.md` - the content agent: mission, voice rules, T0-T3 research policy, LLM routing, operating rules
-- `AGENTS.md` - the builder layer: how skills enter this repo (quarantine, Qodo PR gate, adoption ledger)
+- `AGENTS.md` - the builder layer: how skills enter this repo (quarantine, local QA gate, adoption ledger)
 - `knowledge/` - 4 audience profiles + 9 platform playbooks (every mechanics claim dated; 30-day staleness gate)
 - `data/` (gitignored) - story ledger, performance log, baselines
 - `drafts/` (gitignored) - one dir per story: master.md + platform adaptations + NOTES.md

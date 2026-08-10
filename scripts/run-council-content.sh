@@ -11,7 +11,7 @@ OUT="${2:?missing out path}"
 MODELS="${3:?models list required (csv of provider:model, or the keyword full7); refusing to run with an implicit default}"
 
 if [[ "$MODELS" == "full7" ]]; then
-  MODELS="perplexity:sonar-deep-research,perplexity:sonar-reasoning-pro,xai:grok-4,xai:grok-4-x-search,openai:gpt-5,google:gemini-2.5-pro,anthropic:claude-opus-4-7"
+  MODELS="perplexity:sonar-deep-research,xai:grok-4-20-multi-agent,xai:grok-4,xai:grok-4-x-search,openai:gpt-5,google:gemini-3.1-pro,anthropic:claude-opus-4-7"
 fi
 
 exec node "$HOME/Documents/career-ops/scripts/run-council.mjs" \
