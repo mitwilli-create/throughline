@@ -4,17 +4,17 @@ Revision of the interrupted-session resume plan. v1 was written before the build
 
 ## Corrected premises (v1 is stale on all of these)
 
-- The repo is NOT uncommitted: main has commits, a private remote (github.com/mitwilli-create/content-ops), and merged PRs #1-2. Do NOT plan an "initial commit" or create a `.gitignore`. One exists (data/, drafts/, memory/accounts.md, .claude/skills-inbox/ already ignored; `data/performance-log.md` is covered by `data/`).
-- `.claude/skills/` is not empty scaffolding: **21 promoted skills live there** (7 authored builder skills + 14 superpowers SDLC skills, MIT-attributed). The 5 content-agent dirs (story-scout, draft-post, platform-adapt, timing-check, content-review) are the only empty ones.
+- The repo is NOT uncommitted: main has commits, a private remote (github.com/mitwilli-create/content-ops), and merged pull requests (PRs) #1-2. Do NOT plan an "initial commit" or create a `.gitignore`. One exists (data/, drafts/, memory/accounts.md, .claude/skills-inbox/ already ignored; `data/performance-log.md` is covered by `data/`).
+- `.claude/skills/` is not empty scaffolding: **21 promoted skills live there** (7 authored builder skills + 14 superpowers Software Development Life Cycle (SDLC) skills, attributed under the Massachusetts Institute of Technology (MIT) License). The 5 content-agent dirs (story-scout, draft-post, platform-adapt, timing-check, content-review) are the only empty ones.
 - Governance exists: `AGENTS.md` (SDLC matrix + sourcing policy), `docs/skill-adoption-ledger.md` (append a row per new skill), `scripts/promote-skill.sh` (promotion PR flow), `scripts/run-council-content.sh` (7-model fan-out wrapper: use this, not a raw run-council.mjs call).
-- Qodo reviews every PR on this repo automatically (repo is connected). Note: `/review` is deprecated in favor of `/agentic_review` if a manual trigger is ever needed.
+- Qodo is fully halted. Run local tests, static and security checks, and local review skills for every PR. CodeRabbit is not automatic and is not required for merge.
 - A design-doc precedent exists: `docs/specs/story-14-harness-pipeline-design.md` (produced by `/agent-architecture`). Match its shape.
-- Known KB debt from the kb-build census: `knowledge/audiences.md`, `knowledge/llm-routing.md`, `knowledge/platforms/discord.md`, `knowledge/platforms/github.md` lack freshness markers. Fix in step 3.
+- Known Knowledge Base (KB) debt from the kb-build census: `knowledge/audiences.md`, `knowledge/llm-routing.md`, `knowledge/platforms/discord.md`, `knowledge/platforms/github.md` lack freshness markers. Fix in step 3.
 
 ## Step 0: Design first (use `/agent-architecture`)
 
 One design doc, `docs/specs/content-agent-skills-design.md`, covering the 5 skills + 4 subagents TOGETHER. Its reuse audit must answer, at minimum:
-- **trend-monitor vs story-scout overlap**: both do X/HN/Reddit pulse. Likely verdict: one subagent with two modes, or trend-monitor folded into story-scout. Don't ship both without the audit saying why.
+- **trend-monitor vs story-scout overlap**: both do X/Hacker News (HN)/Reddit pulse. Likely verdict: one subagent with two modes, or trend-monitor folded into story-scout. Don't ship both without the audit saying why.
 - **timing-check vs `/platform-playbook-refresh` boundary**: timing-check = per-post live verify (T1/T2, reads the playbook, checks TODAY's window); playbook updates flow through `/platform-playbook-refresh` (already promoted), NOT timing-check writing into playbooks directly. This replaces v1's "self-healing baselines" wording. One writer per file class.
 - **content-review vs `/prompt-eval` asserts**: content-review's greps (em dash, banned word, idioms) must be the SAME checks as the prompt-eval standard asserts; define once (a tiny shared script or identical regex list), referenced by both.
 
@@ -46,24 +46,24 @@ Author each SKILL.md following the `writing-skills` skill (promoted) + the struc
 ## Step 5: Ship through the gate (replaces v1's "git add + initial commit")
 
 - Feature branch `feat/content-agent-skills` → commit skills + agents + docs (NOT data/ or drafts/) → push → PR.
-- Qodo auto-reviews (repo connected). HIGH security finding = fix before merge; advisory nits = fix or record, reviewer's call.
+- Former hosted-review findings are historical evidence only. Run the local quality assurance (QA) gates and local review skills above; a high-severity finding blocks the change until fixed, and lower-severity findings are fixed or recorded before the human merge decision.
 - Merge needs Mitchell's approval (self-merge is policy-blocked, surface the PR link).
-- Append one ledger row per skill/agent in `docs/skill-adoption-ledger.md` (source = authored, Qodo verdict, smoke evidence), flip to PROMOTED on merge.
+- Append one ledger row per skill/agent in `docs/skill-adoption-ledger.md` (source = authored, local review verdict, smoke evidence), flip to PROMOTED on merge.
 - Cross-session memory: `project_content_ops_builder_layer.md` already exists in the career-ops memory dir and says these 5 skills are the next work item. UPDATE it (and its MEMORY.md line) to "content agent complete"; only add a separate `reference_content_ops_system.md` if there's usage guidance that doesn't fit the existing file.
 
 ## Reuse (unchanged from v1, plus the new layer)
 
-- LLM fan-out: `scripts/run-council-content.sh` (wraps career-ops council with explicit models, never an empty --models)
+- Large Language Model (LLM) fan-out: `scripts/run-council-content.sh` (wraps career-ops council with explicit models, never an empty --models)
 - Voice: global `make-it-sound-like-mitchell` + `mitchells-voice-style`
 - Deep research: `/deep-research` + career-ops `researcher` agent
-- NEW: `/agent-architecture`, `writing-skills`, `/prompt-eval`, `/kb-build` rules, `/platform-playbook-refresh`, `/regression-wire` (wire the content-review asserts as a golden suite + note the seeded `data/baselines/kb-freshness.json`), superpowers TDD/verification skills, `/mcp-debug` if any connector misbehaves
+- NEW: `/agent-architecture`, `writing-skills`, `/prompt-eval`, `/kb-build` rules, `/platform-playbook-refresh`, `/regression-wire` (wire the content-review asserts as a golden suite + note the seeded `data/baselines/kb-freshness.json`), superpowers test-driven development (TDD) and verification skills, `/mcp-debug` if any connector misbehaves
 
 ## Acceptance test (v1's, upgraded)
 
 1. Design doc exists with the three overlap questions answered explicitly.
 2. Every new SKILL.md / agent .md has valid frontmatter; census via `find .claude/skills .claude/agents -name "*.md"`. Zero empty dirs remain.
 3. Golden mini-suite green (prompt-eval output attached) AND content-review correctly fails the dirty fixture.
-4. PR merged with clean Qodo review; ledger rows PROMOTED for every new skill/agent.
+4. PR merged after local QA and local review; ledger rows PROMOTED for every new skill/agent.
 5. Grep census: 0 banned patterns outside rules files that name them.
 6. 4 KB docs carry freshness markers (kb-freshness baseline count moves 7 → 11; update `data/baselines/kb-freshness.json` with a provenance note per `/regression-wire` rules).
 7. Career-ops memory updated (existing file, not a duplicate).
