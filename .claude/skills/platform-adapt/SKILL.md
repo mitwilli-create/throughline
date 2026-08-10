@@ -23,7 +23,7 @@ Turn one canonical piece into platform-native versions. Adaptation means re-expr
    Compute the hash with `shasum -a 256 <master>` (or `node -e "import('node:crypto').then(c=>import('node:fs').then(f=>console.log(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))))" <master>`). Without this, the staleness guard falls back to weaker mtime comparison.
 5. **Hooks:** 2-3 hook variants at the top of each adaptation (below the frontmatter), marked `HOOK A/B/C`, chosen for that platform's scroll context.
 6. **Voice pass:** run the global `make-it-sound-like-mitchell` pass on each adaptation. Do this BEFORE the gate, since it is the last text mutation and can reintroduce an em dash or banned term.
-7. **Gate (runs after the final mutation):** run `node scripts/voice-gates.mjs <file> --platform <platform>` on each output; fix violations before staging. If the voice pass or a fix edits the text again, re-run the gate, so what stages is exactly what passed.
+7. **Gate (runs after the final mutation):** run `node scripts/writing-craft-gate.mjs <file> post`, then run `node scripts/voice-gates.mjs <file> --platform <platform>` on each output; fix violations before staging. If a later fix edits the text again, re-run both gates, so what stages is exactly what passed.
 8. **Confirm freshness:** run `node scripts/check-adaptation-staleness.mjs <draft-dir> --master <master filename>`; it must exit 0. This is the same guard `/publish` runs before any cross-post.
 
 ## Sequencing default (from the playbooks' cascade notes)

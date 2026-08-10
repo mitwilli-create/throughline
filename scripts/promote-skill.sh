@@ -1,14 +1,12 @@
 #!/bin/bash
-# promote-skill.sh — promotion gate v2 (Qodo PR-review flow).
-# The original gate used the Qodo CLI, which Qodo discontinued (backend refuses all calls
-# as of 2026-07-05). The working Qodo product is automatic PR review on a connected Git
-# provider, so promotion is now a PR: skill files enter .claude/skills/ on a branch, Qodo
-# reviews the diff at app.qodo.ai (repo must be connected once), merge = promoted.
+# promote-skill.sh: promotion gate v3 (local review flow).
+# Promotion is a PR: skill files enter .claude/skills/ on a branch, local tests and review
+# skills inspect the diff, and a clean smoke test is required before merge.
 #
 # Usage: bash scripts/promote-skill.sh <inbox-skill-name> [<inbox-skill-name>...]
 # Creates branch promote/<first-name>[-etc], copies each skill's SKILL.md dir from
 # .claude/skills-inbox/ into .claude/skills/, commits, pushes, opens a PR.
-# After Qodo review passes: merge the PR, update docs/skill-adoption-ledger.md, and
+# After local review passes: merge the PR, update docs/skill-adoption-ledger.md, and
 # copy the promoted files back into the working tree via git pull.
 
 set -euo pipefail
@@ -26,7 +24,7 @@ for name in "$@"; do
 done
 
 # NOTE: the suffix must be computed in a plain if, not inline as
-# BRANCH="...$( [[ $# -gt 1 ]] && ... )" — under set -e a failing command
+# BRANCH="...$( [[ $# -gt 1 ]] && ... )". Under set -e, a failing command
 # substitution in an assignment aborts the script, which made every
 # single-skill invocation exit 1 before doing anything.
 SUFFIX=""
@@ -45,7 +43,7 @@ for name in "$@"; do
     mkdir -p ".claude/skills/$name"
     rsync -a --exclude='.git' "$SRC/" ".claude/skills/$name/"
   else
-    echo "SKIP $name: no SKILL.md at repo root — extract specific skill dirs manually"; continue
+    echo "SKIP $name: no SKILL.md at repo root. Extract specific skill dirs manually"; continue
   fi
   git add ".claude/skills/$name"
   PROMOTED=$(( PROMOTED + 1 ))
@@ -56,16 +54,16 @@ if [[ $PROMOTED -eq 0 ]] || git diff --cached --quiet; then
   abort
 fi
 
-git commit -m "promote: $* into .claude/skills/ (pending Qodo PR review)
+git commit -m "promote: $* into .claude/skills/ (pending local review)
 
-Evidence + pre-scan in docs/skill-adoption-ledger.md. Qodo reviews this PR
-automatically once the repo is connected at app.qodo.ai.
+Evidence + pre-scan in docs/skill-adoption-ledger.md. Run the repository's local
+tests, static checks, and review skills before merging.
 
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 git push -u origin "$BRANCH"
 gh pr create --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)" \
   --title "Promote skill(s): $*" \
-  --body "Moves skill(s) from quarantine into .claude/skills/. Gate: Qodo auto-review on this PR + smoke-test evidence in docs/skill-adoption-ledger.md. Merge only after Qodo review is clean.
+  --body "Moves skill(s) from quarantine into .claude/skills/. Gate: local tests, static checks, review skills, and smoke-test evidence in docs/skill-adoption-ledger.md. Merge only after the local gates are clean.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 git checkout -

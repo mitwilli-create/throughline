@@ -1,98 +1,208 @@
 ---
 name: routing-experiment-runner
-description: Run a reproducible 3-tier model-routing experiment (frontier direct / cheap cloud via OpenRouter / local Ollama) graded against a real git commit as ground truth. Use when deciding which model tier a real task class should route to, when producing field-report data for a routing/cost story, when validating a cheap or local model before wiring it into CCR, or when the user says "run the routing experiment", "test the tiers on this task", "which tier can handle X", "grade the cheap model against what we shipped". Encodes the proven pattern from drafts/china-llm-routing/experiment/ (2026-07-16): pick a shipped commit, replay the same prompt per tier, apply to a scratch copy, grade file-by-file, log cost/wall-clock/failure-mode. Preflight-gates the local tier on RAM so a 30B model does not thrash swap for an hour and produce nothing.
+description: Run a reproducible three-tier model-routing experiment against a real git commit, with a baseline-only frontier tier and isolated cheap-cloud and local replays. Use when deciding which model tier should handle a task class, validating a cheap or local model before routing work to it, producing private field-report evidence, or when the user asks to run or grade a routing experiment. Enforces path containment, private-by-default artifacts, explicit cloud-transport authorization, atomic per-tier locks, provider provenance, incremental persistence, and a local-memory preflight.
 ---
 
 # Routing Experiment Runner
 
-Model-routing decisions ("route the menial tier to a cheap open model, reserve frontier for judgment") are only as good as the evidence under them. This skill turns that claim into a reproducible experiment: take work a frontier model already shipped, replay the identical task through each candidate tier, and grade every tier against the shipped commit. The output is a results table you can route by and a field report you can publish from.
+Model-routing claims need reproducible evidence. This skill takes work that already shipped, records the shipped commit as the frontier baseline, replays the same task through eligible candidate tiers, and grades the replayed outputs against that baseline.
 
-Proven end to end 2026-07-16. Reference implementation and subagent spec: `drafts/china-llm-routing/experiment/` (`tasks.md`, `log.md`, `outputs/<task>-<tier>/`).
+The historical 2026-07-16 experiment is provenance, not a current safety baseline. Its ignored artifacts may exist in the private workspace at `drafts/china-llm-routing/experiment/`, but they are not part of this skill package and do not satisfy the current path, privacy, locking, or provider-provenance contract. A new run must satisfy this document from its first artifact.
 
-## The tiers
+## Build versus adopt ruling
 
-| Tier | What | Example (locked 2026-07-16) |
+Official documentation was reviewed on 2026-08-09. [Promptfoo providers](https://www.promptfoo.dev/docs/providers/) and [structured outputs](https://www.promptfoo.dev/docs/configuration/outputs/) cover broad multi-provider evaluations and exportable results. [Inspect](https://inspect.aisi.org.uk/) and its [evaluation logs](https://inspect.aisi.org.uk/eval-logs.html) cover composable evaluations, sandboxing, and structured evaluation logs. [LiteLLM](https://docs.litellm.ai/) covers a unified provider interface, routing, retry, fallback, load balancing, cost tracking, and observability.
+
+The current search also covered official GitHub repository metadata and relevant package registries using sanitized generic terms and no private identifiers. Official GitHub application programming interface (API) metadata recorded on 2026-08-09 Pacific Daylight Time showed [Promptfoo](https://github.com/promptfoo/promptfoo) at 24,091 stars and 2,172 forks, [Inspect AI](https://github.com/UKGovernmentBEIS/inspect_ai) at 2,514 stars and 641 forks, and [LiteLLM](https://github.com/BerriAI/litellm) at 55,981 stars and 10,452 forks. These are bounded adoption signals, not measured ratings or download counts.
+
+The community-first search on 2026-08-09 used only sanitized generic terms such as `large language model evaluation routing framework` and `promptfoo inspect ai litellm large language model evaluation routing`. It searched [X](https://x.com/hashtag/promptfoo), [Reddit](https://www.reddit.com/r/LangChain/comments/1b064fb/), [Hacker News](https://news.ycombinator.com/item?id=40922739), [Discord discovery](https://discord.com/servers/megallm-ai-1311631228453130250), developer forums including [Stack Overflow](https://stackoverflow.com/questions/79600690/how-to-set-a-system-prompt-for-a-litellm-prompt-provider) and Dev.to, and package registries including [npm](https://www.npmjs.com/package/promptfoo), [Inspect on Python Package Index](https://pypi.org/project/inspect-ai/), and [LiteLLM on Python Package Index](https://pypi.org/project/litellm/). No repository name, task text, private identifier, or private artifact entered a query. These surfaces showed active evaluation, routing, and provider-integration tools and discussion. They were used to compare documented capabilities, not to infer ratings, downloads, or a universal absence.
+
+Those signals strengthen the case to adopt established components when they fit. Build this narrow workflow integration because no built-in combination documented in those sources matched the audience-specific boundary required here: a merged git commit as a baseline-only Tier 1, private ignored artifacts, exclusive per-run locks, explicit authorization for private transport, verified OpenRouter selected-endpoint provenance, and a local-memory refusal gate in one skill. This is a scoped integration finding, not a claim that the established tools lack their documented capabilities.
+
+## Tier contract
+
+| Tier | Execution | Result representation |
 |---|---|---|
-| 1 (frontier) | the model that shipped the ground-truth commit; the baseline both others are graded against, not re-run | Fable 5, Anthropic direct |
-| 2 (cheap cloud) | an open-weight model via OpenRouter, provider PINNED | qwen3-coder-30b-a3b-instruct, `allow_fallbacks:false` |
-| 3 (local) | the same model class on this machine, free but RAM-bound | qwen3-coder:30b-a3b-q4_K_M via Ollama |
+| Tier 1, frontier | Baseline-only. Read the shipped commit locally and do not replay or send the task to a model. | One baseline row per task, labeled `baseline-only`, plus the reference diff and files. |
+| Tier 2, cheap cloud | Replay the verbatim task through one runtime-verified OpenRouter model and one explicitly allowed provider. | One replay row per task, with requested and resolved model/provider provenance. |
+| Tier 3, local | Replay the same verbatim task through one runtime-verified local Ollama model after the memory preflight. | One replay row per task, or a refused row with the preflight reason. |
 
-Web-verify every model slug and price at run time (they drift in weeks); record the verification date in `log.md`. Pin the cloud provider with `allow_fallbacks:false` so a silent provider swap cannot change the quant under you mid-run.
+Only Tier 2 and Tier 3 are replay tiers. Tier 1 is baseline-only and not replayed. It is never fed a prompt and is never counted as a fresh model run. Its cost, latency, and provider fields are `not_applicable`, not zero.
+
+Web-verify model identifiers, provider identifiers, availability, and price at run time because they change. Record the verification date and sources in the private run log. Never silently substitute a model, provider, quantization, or tier.
+
+## Mandatory boundary before any artifact
+
+Every run must supply exactly the three distinct tiers in the table above. Reject a subset, duplicate, or extra tier before any callback, directory creation, file write, or lock attempt. All three tiers, including Tier 1 baseline-only artifacts, must then cross the same path, privacy, and lock boundary before any artifact is written. Only Tier 2 and Tier 3 may invoke a model. The canonical `outputs` and `.locks` directories are empty boundary infrastructure and may be initialized during this boundary. No `tasks.md`, `log.md`, baseline file, refusal record, tier-result directory, request, or response may be created before the boundary completes.
+
+### 1. Classify transport and publication
+
+1. Treat repository visibility as private unless a live proof callback confirms the exact input commit and every transmitted input are public. A caller-supplied `public` label is not proof.
+2. Invoke an available credential scanner over the exact task bytes and source inputs before the live public-proof callback, any other remote request, or any artifact. Snapshot caller byte arrays immediately. For a canonical regular-file location, open without following symbolic links, capture complete bytes once, and require stable device, inode, size, and timestamps across the read. Pass each source's repository, immutable commit identifier, relative path, complete snapshotted bytes, and canonical location when applicable to the scanner callback. Give each callback its own copy so it cannot mutate the canonical snapshot. For private input, this identity and path list must match the separately recorded private-input identity exactly. Require a schema-version-`1` success receipt that repeats the exact task identifier, visibility, task bytes, private-input identity or null, and complete source list. A missing callback, thrown error, Boolean or broad success, omitted source, mismatched receipt, incomplete result, or finding is a hard stop. Never transmit credentials, authentication headers, tokens, personal account data, or unredacted personally identifiable information (PII).
+3. Require a nonempty source list for both visibility classes. Each entry must have a valid repository identity, immutable 40- or 64-character hexadecimal commit, contained relative path, and exactly one of complete bytes or a canonical resolvable regular-file location. Reject duplicates, mutable references, traversal, missing content, and mixed byte/location claims.
+4. Tier 1 and Tier 3 keep inputs local. Tier 2 accepts public inputs or private inputs with explicit transport authorization only. It may transmit inputs when either:
+   - the live public-proof callback returns schema version `1`, visibility `public`, the exact task bytes, and a source list that matches every repository, commit, path, and byte sequence or canonical location; or
+   - the user gives a structured authorization record with schema version `1`, the exact private repository, immutable commit identifier, complete relative path list, and destination `OpenRouter`. The record must match the separately recorded private-input identity field-for-field.
+5. A missing, thrown, Boolean, broad, incomplete, or mismatched public proof fails closed. A Boolean, broad instruction, record for different content, or private input without its exact authorization also fails closed. Invalid supplied authorization stops the run. Absent private authorization marks Tier 2 as `refused-no-transport` in memory, makes no request, and writes no artifact until the remaining path and lock checks complete.
+6. After the complete three-lock boundary, mint one opaque Tier 2 transport capability from the exact successful scan plus public proof or private authorization. Derive the request message from the scanned task and source bytes inside that capability. A caller-supplied transport string, caller-supplied replacement message, forged capability, released or replaced lock, or capability from another run fails before request construction. Keep lock identity in private immutable state rather than mutable objects returned to the caller.
+7. Every artifact is private by default, including prompts, repository content, full application programming interface (API) responses, provider metadata, grading notes, latency, and absolute cost. Publication is a separate, later action described below.
+
+### 2. Validate names and containment
+
+Choose one existing, trusted experiment root. Before any `mkdir`, file write, or lock attempt, inspect the supplied root itself with `lstat`, require a real current-user-owned directory with mode `0700`, resolve it with `realpath`, and require the supplied path to equal that canonical value. A failed root check must leave no `outputs`, `.locks`, or artifact side effect. Use the validated canonical value for every later check.
+
+- Task and tier identifiers must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`. Reject, rather than normalize, path separators, dot segments, absolute paths, empty values, Unicode lookalikes, and every other value.
+- The output root is the literal direct child `<experiment-root>/outputs`. Create it with mode `0700` only if its canonical parent is the experiment root. Use `lstat` on every existing path component and reject symbolic links (symlinks) or non-directories.
+- Resolve each proposed tier directory with the platform path library before acquiring locks. Its parent must equal the canonical output root and its relative path must be exactly one segment. Inspect an existing entry with `lstat` and reject a symbolic link, non-directory, wrong owner, permissive mode, different device, or noncanonical target. Reject an existing directory as a collision unless the user supplied an exact resume run identifier. At this pre-lock stage, validate only the path and resume record structure. Do not trust or hash the manifest yet.
+- The lock root is the literal direct child `<experiment-root>/outputs/.locks`. Create it with mode `0700`, then verify with `lstat` that it is a real directory, owned by the current user, not a symbolic link, and canonically contained as that exact direct child. Reject permissive modes, a different owner, a different device, or any containment ambiguity.
+- Invoke the real `git check-ignore` command over the experiment root and every proposed artifact before writing. Keep that complete ordered path set in immutable internal state, give the callback a separate copy, and compare its result only with the immutable expectation. Require a schema-version-`1` receipt that repeats the exact canonical root and every checked path in order. A missing callback, Boolean or broad success, error, incomplete or mismatched receipt, path outside a Git worktree, or nonignored path stops the run. Fix the storage location or ignore rule before retrying.
+
+### 3. Acquire crash-safe locks
+
+Pre-acquire one lock for each task/tier pair in a stable sorted order before writing shared artifacts. This includes the Tier 1 baseline. After every lock is acquired and while all remain held, validate each resumed tier's manifest schema, exact run identifier, artifact paths, and hashes. This ordering prevents `ownerForTier`, another runner, or a concurrent filesystem mutation from changing resume artifacts between verification and lock ownership. Release all acquired locks if any later acquisition or boundary check fails.
+
+For `<task>-<tier>`, use final lock `outputs/.locks/<task>-<tier>.lock` and a unique temporary lock in that same directory.
+
+1. Open the temporary file with exclusive creation, no symbolic-link following, and mode `0600`.
+2. Write complete owner metadata before exposing the lock: numeric schema version `1`; nonempty string run identifier, task, tier, hostname, and process-start token; positive integer process identifier (PID); nonnegative integer current-user identifier equal to the current user; and a valid Coordinated Universal Time timestamp ending in `Z`. Require the timestamp to round-trip through the date parser to the exact original string so impossible calendar dates cannot normalize into validity. Reject wrong types. End the canonical JavaScript Object Notation (JSON) record with a newline.
+3. Flush the complete owner metadata with `fsync`, close the temporary file, and verify it is a regular `0600` file owned by the current user on the same device as `.locks`.
+4. Atomically call `link(temp, final)`. A successful hard link owns the lock. `EEXIST` means another owner already holds or held it, so do not start the tier.
+5. Flush the `.locks` directory after a successful link. If that flush or any later validation fails before ownership is returned, re-check that the final device and inode still match the just-linked temporary file, unlink only that exact final lock, and include its directory flush in cleanup. On every success or failure path, attempt all applicable temporary-handle close, exact failed-final removal, unique-temporary removal, and directory-flush operations even when one fails. Return one aggregate containing the primary error plus every cleanup error. A crash before `link()` can therefore leave only an unexposed temporary file, never an empty final lock.
+
+Temporary file cleanup is mandatory on every success and failure path.
+
+On `EEXIST`, inspect the final entry without following links. Stop on a symbolic link, non-regular file, wrong owner, permissive mode, remote hostname, or unverifiable process identity. Do not accept a caller's Boolean stale assertion. Compare the recorded hostname with the current host, then use the operating system process lookup to obtain the recorded PID's current start token. The lock is live when the token matches, and proven stale only when the PID is absent or its nonempty token differs. A remote hostname, lookup error, malformed result, or legacy metadata fails closed and is never quarantined automatically.
+
+Never unlink a suspected stale lock. Atomically rename a proven stale lock to `<name>.stale.<timestamp>.<nonce>`, then re-read it without following links and require the device, inode, and run identifier to match the inspected entry. A mismatch is a race and stops reacquisition. Flush `.locks`, then reacquire from a new complete temporary file. If the rename races or fails, stop or retry the entire inspection a bounded number of times. The rule is stale rename, verify, then reacquire, never stale delete then continue.
+
+Keep the acquired lock's device, inode, and run identifier in memory. Before release, verify the final lock still matches them, flush every completed artifact and its directory, unlink only the verified owned lock, and flush `.locks`. Preserve quarantined stale locks as private audit evidence.
+
+If any later boundary step fails, attempt release of every acquired lock in reverse order even when one release fails. Return one aggregate failure containing the original boundary error and every release error. Never abandon later cleanup attempts after the first cleanup error.
 
 ## Procedure
 
-### 1. Pick ground truth and extract it read-only
+### 1. Select and extract ground truth read-only
 
-- Choose a REAL, already-merged commit that represents the task class you want to route. Prefer a commit with a clear diff and an unambiguous "correct" answer.
-- Extract the before / reference / after state with `git show` only. Never mutate the real repo:
-  - `git show <gt>^:<file>` = the BEFORE state each tier starts from.
-  - `git show <gt>:<file>` = the AFTER state (ground truth to grade against).
-  - the diff `git show <gt>` = the exact change expected.
-- Each tier runs on a fresh branch off `<gt>^` (or on a scratch copy of the before-state files), so its diff is directly comparable to `git show <gt>`.
+- Choose a real, already-merged commit with a clear diff and an unambiguous expected result.
+- Use only read commands against the real repository:
+  - `git show <ground-truth>^:<file>` is the before-state replay input.
+  - `git show <ground-truth>:<file>` is the after-state reference.
+  - `git show <ground-truth>` is the expected diff.
+- Copy those bytes into the private experiment root only after the boundary and Tier 1 lock succeed. Never create replay branches or scratch files in the live repository.
+- Record Tier 1 as `baseline-only`, with the commit identifier and reference hashes. Do not invent model, provider, latency, usage, or cost values.
 
-### 2. Design tasks that separate mechanics from judgment
+### 2. Design tasks before replay
 
-Write each task prompt ONCE, verbatim, in `tasks.md`. The same bytes go to every tier; only the model / provider / location changes. Include at least:
-- one **pure-mechanical** task (e.g. insert the same markup across N files): the "route it and forget it" case.
-- one **judgment / exception** task with deliberate traps (a rule to apply everywhere EXCEPT two files where it would break something). The held-in-tension exceptions are the sharpest test of whether a cheap model reads the constraints or pattern-matches past them.
+Write each task once, byte-for-byte, in `tasks.md`. The same task bytes are referenced by the Tier 1 baseline and sent to each authorized replay tier. Tier 1 records the task but does not send it anywhere.
 
-For each task record, up front, the "what breaks, to watch for" list: the specific failure modes to grade against. Predicting them before the run is what makes the grading honest.
+Include at least:
 
-### 3. Run each tier, apply to a scratch copy, grade file-by-file
+- one mechanical task, such as applying the same markup across multiple files;
+- one judgment task with deliberate exceptions; and
+- a predeclared watchlist of the exact failure modes that grading will check.
 
-For every (task, tier):
-1. Feed the verbatim prompt to that tier's model.
-2. Apply the returned output to a scratch copy of the before-state files (never the live repo).
-3. Grade each output file against ground truth:
-   - **pass** = byte-exact / semantically-exact match to the ground-truth file.
-   - **partial** = right change, wrong position / formatting / a dropped conditional clause.
-   - **fail** = missed file, or an exception inverted (applied the change where the task said do not).
-   - count files: "13/13 exact", "1 pass / 5 partial / 1 fail".
-4. Log cost, wall-clock, files-correct, and the failure mode in plain language to the results table in `log.md`. The failure-mode sentence is the reusable asset: it is the field-report material and the routing rationale.
+Predict the watchlist before any replay. Post-hoc grading criteria are not evidence.
 
-### 4. Write every artifact to disk INCREMENTALLY
+### 3. Configure and prove OpenRouter routing
 
-This is a hard discipline, not a nicety. Write each artifact the moment it exists to `outputs/<task>-<tier>/`:
+Before constructing an authorized Tier 2 request, require the live opaque transport capability described above, then invoke a live OpenRouter route-verification callback. Require a structured schema-version-`1` success record naming destination `OpenRouter`, exactly one nonempty model identifier, exactly one nonempty provider identifier, and a valid Coordinated Universal Time verification timestamp that round-trips to the exact calendar string. The verified identifiers must exactly match the requested identifiers. Missing, thrown, broad, empty, impossible-date, or mismatched verification stops before policy construction. Re-read every captured lock identity after the awaited verification callback and immediately before construction. Construct one immutable request from the snapshotted bytes, omit local absolute locations from the transmitted source records, mark that exact object as runtime verified in private state, and set this exact provider policy:
 
-```
-outputs/<task>-<tier>/
-  prompt.md            # the verbatim prompt sent
-  response_raw.json    # full API/runner response (usage, cost, finish_reason)
-  response_content.md  # the model's text output
-  applied/             # the scratch files after applying the output
-  grading.md           # per-file verdict + method + friction notes
-  meta.json            # tier, model, provider_requested/used, wall_clock_s, usage, cost_usd, http_status, finish_reason
+```json
+{
+  "provider": {
+    "order": ["<provider-id>"],
+    "only": ["<provider-id>"],
+    "allow_fallbacks": false,
+    "data_collection": "deny",
+    "zdr": true
+  }
+}
 ```
 
-Because the reference run survived a mid-session CCR process restart with zero lost work: everything was already on disk, so resume-from-transcript recovered it. A run that holds results in memory until the end loses the whole run on any restart. If a subagent drives the run, its prompt must say "write each artifact to disk immediately."
+Here, `zdr` requests zero data retention (ZDR). These controls supplement the explicit transport decision; they never replace it. If the requested provider cannot satisfy collection denial and ZDR, the request must fail rather than fall back.
 
-Guard against a duplicate runner: a restart can leave a second process writing the SAME `outputs/<task>-<tier>/` dir. Before launching a tier, check the output dir is not already being written; stop cleanly rather than let two runners race.
+Send `X-OpenRouter-Metadata: enabled` on the Hypertext Transfer Protocol (HTTP) request. Keep the authorization header out of every log and artifact.
 
-## Local-tier RAM preflight (HARD GATE, do this before launching tier 3)
+Before accepting, applying, grading, or persisting a response as a result:
 
-The 2026-07-16 run aborted the local tier at ~60 minutes elapsed with ZERO output: an ~18GB q4 model plus the OS on a 24GB M2 MacBook Air drove swap to 11.8GB of 13.3GB used, the Ollama runner's CPU collapsed from ~305% (computing) to ~11% (waiting on page I/O), and it never finished. "Run it locally for free" is a mirage when the model does not fit resident in RAM: the free model costs an hour and delivers nothing.
+1. Require `openrouter_metadata.endpoints.available` to be present and require exactly one endpoint entry whose `selected` value is `true`, with nonempty reported model and provider strings.
+2. Persist the selected entry's reported display values as `model_resolved` and `provider_used`. Persist the requested slugs separately as `model_requested` and `provider_requested`. Display names and resolved aliases may legitimately differ from requested slugs, so never require string equality between those fields.
+3. Prove the allowed route separately. A success receipt requires the same privately branded immutable request returned by the live construction step; a structurally similar caller-built object is not proof. Persist the complete request policy in `route_proof`, including `order`, `only`, `allow_fallbacks`, `data_collection`, and `zdr`. When OpenRouter documents and returns a stable endpoint identity that was constrained in advance, require that identity to match and record it. When no documented stable mapping exists, keep request-policy proof separate from selected display metadata rather than inventing an equality check.
+4. Fail closed on absent, malformed, or ambiguous selected metadata; invalid request-policy proof; or a mismatch in any documented stable identity actually used. Do not infer provider identity from model or provider display strings, response price, or aliases.
+5. A cache hit that lacks this metadata must fail closed with no receipt. Do not apply or grade its content. After the lock boundary, record only the bounded failure code `provider_metadata_missing`; do not persist the unproved response as a valid result.
 
-Preflight before every local tier, and REFUSE (or warn hard) when it will not fit:
+### 4. Run only the replay tiers
 
-1. **Model resident size** = from `ollama list` (the model's on-disk size ≈ its resident footprint; a q4 30B is ~18-19GB).
-2. **Physical RAM** = `sysctl -n hw.memsize` (bytes; divide by 1024^3 for GB).
-3. **Currently available** = `memory_pressure` (look at "System-wide memory free percentage") or `vm_stat` (free + inactive pages × page size).
-4. **Gate:**
-   - if `model_size_GB > physical_RAM_GB - HEADROOM` (HEADROOM default ~6-8GB for OS + apps) → **REFUSE**. The model cannot fit resident; it will thrash swap. Route the "local" tier to cheap cloud instead, or pick a smaller / more-quantized model that fits, and say so.
-   - else if `model_size_GB > available_free_GB` → **WARN HARD**: it may fit only after closing other apps. Tell the user to free RAM first, or proceed at their own risk.
-   - else → clear to run.
-5. **No-stream caveat:** if the runner does not stream (the reference `call_ollama.py` only returned on HTTP completion), you get no partial output and no progress signal. Set an explicit wall-clock abort (e.g. 15-20 min) and treat a swap-thrash signature (CPU dropping while pageins climb) as an immediate stop, not a "wait longer".
+For Tier 2 and Tier 3 only:
 
-A refused or aborted local tier is itself a finding, not a gap: on constrained consumer hardware the realistic menial tier is cheap CLOUD (cents, seconds), not a local 30B. Record that in `log.md` and move on.
+1. Feed the verbatim task to that tier after its boundary and lock succeed.
+2. Apply the accepted output to a scratch copy of the before-state files, never the live repository.
+3. Grade each file against the Tier 1 reference:
+   - `pass`: byte-exact or predeclared semantically exact;
+   - `partial`: correct intent with a placement, formatting, or conditional error; or
+   - `fail`: missed file, unsafe extra mutation, or inverted exception.
+4. Record exact counts plus a plain-language failure mode. Keep refused and failed tiers in the matrix rather than dropping them.
 
-## Cost / spend privacy
+### 5. Persist private artifacts incrementally
 
-Cost figures in `log.md` and `meta.json` are PRIVATE grounding. Per the no-absolute-spend rule (`memory/`, `NOTES.md`), never put absolute dollar amounts in any published artifact: public copy uses relative comparisons and percentages only, computed from the real figures kept in the draft's `NOTES.md`. See the `no-absolute-spend-disclosure` memory.
+After every tier path, privacy decision, lock, and resume check succeeds, mint an unforgeable publication capability for each tier plus a shared root capability backed by all three locks. Snapshot immutable device, inode, run identifier, task, and exact tier values into private capability state, and return only immutable lock handles. Before every artifact publisher runs, require the capability to match the canonical destination scope and re-read the associated final lock or locks without following links. Re-run the same ownership check after the temporary file is flushed and every awaited caller hook returns, immediately before the hard link. Every captured identity field must still match, including each shared capability lock's tier. An absent, forged, mutated, wrong-scope, released, replaced, or revived capability fails before publication.
+
+Within that capability boundary, require the canonical run or tier root and every existing directory component to be real `0700` directories owned by the current user on one device. Use the lock protocol's exclusive publication sequence: create one unique `0600` temporary file without following symbolic links, write and flush the complete bytes, close and validate it, then hard-link it to the destination. `EEXIST` is a collision and leaves the destination unchanged. Flush the destination directory after linking. On every path, attempt temporary close when still open, unique-temporary removal, and directory flush, and aggregate every cleanup failure with the primary error.
+
+Never use an ordinary rename for artifact publication, never unlink or replace an existing destination, and never retry a collision as an overwrite. Direct partial writes are not valid artifacts.
+
+```text
+outputs/<task>-tier-1-baseline/
+  prompt.md
+  reference.patch
+  reference/
+  grading.md
+  meta.json
+
+outputs/<task>-tier-2-cloud/
+outputs/<task>-tier-3-local/
+  prompt.md
+  response_raw.json
+  response_content.md
+  applied/
+  grading.md
+  meta.json
+```
+
+Directories are mode `0700`; files are mode `0600`. `response_raw.json` is the full accepted response after provider provenance validation, never a credential-bearing request. `meta.json` records tier, execution mode, requested and resolved model/provider, wall-clock duration, usage, private absolute cost, HTTP status, finish reason, transport authorization basis, run identifier, and artifact hashes.
+
+Publish the manifest through the same exclusive hard-link protocol. On resume, acquire all required locks, including any stale-lock reacquisition through the quarantine procedure, before reading or trusting resume contents. While every lock remains held, require the exact run identifier and manifest schema, and inspect every component of the manifest and artifact paths with `lstat`. Reject symbolic links, non-directories in intermediate components, non-regular artifact files, owner or device changes, noncanonical paths, and targets outside the run root. Only then verify every recorded artifact hash and continue from the first missing artifact. Refuse a run-identifier, manifest, path, or hash mismatch. Never overwrite a completed artifact or trust presence without hash validation.
+
+## Local-tier random access memory preflight
+
+Run this hard gate before Tier 3:
+
+1. Read the model's resident size from `ollama list`.
+2. Read physical random access memory (RAM) from `sysctl -n hw.memsize`.
+3. Read current available memory from `memory_pressure` or `vm_stat`.
+4. Reserve 6 to 8 gigabytes (GB) for the operating system and active applications:
+   - refuse when the model is larger than physical RAM minus the reserve;
+   - warn and require an explicit proceed decision when it fits physical RAM but exceeds currently available memory; or
+   - continue when it fits current available memory.
+5. Set a 15 to 20 minute wall-clock deadline when the runner does not stream. Stop early if central processing unit (CPU) use collapses while page-ins climb, and record `refused-memory` or `stopped-memory-pressure`.
+
+The historical local run produced no output after sustained memory pressure. That is historical capacity evidence only. The current preflight result is the evidence for a new run.
+
+## Privacy and publication boundary
+
+- Raw prompts, source files, API responses, provider metadata, grading, absolute costs, and logs stay private and ignored.
+- Run the credential scanner again over every artifact. A scanner failure or finding blocks completion and publication.
+- Redact secrets, personal data, private repository content, raw provider metadata, and absolute costs into a separate sanitized report. Review the sanitized report directly before publication.
+- Public copy may use relative cost comparisons and percentages derived from private values. Never publish from `response_raw.json`, `response_content.md`, `grading.md`, `meta.json`, or `log.md` directly.
+- Publishing, uploading, or sharing any report requires a separate explicit user action. Completing the experiment does not authorize publication.
 
 ## Definition of done
 
-- `tasks.md` with verbatim per-tier prompts + a "what breaks" watchlist per task.
-- `outputs/<task>-<tier>/` populated incrementally for every tier that ran, with `meta.json` + `grading.md`.
-- `log.md` results table: per (task, tier) cost, wall-clock, files-correct, failure mode; tier/provider key with the price-verification date; any refused/aborted tier logged with its reason.
-- A one-line routing verdict per task class ("route mechanical X to cheap cloud; keep judgment Y on frontier").
-- Absolute costs stay in `NOTES.md`; nothing with a dollar figure leaves the draft dir.
+- The exact three-tier set and trusted experiment root are validated with zero side effects. The run then has successful exact-input credential-scan and ignore checks before the three per-tier paths, privacy decisions, and atomic locks complete without artifacts.
+- `tasks.md` contains the verbatim tasks and predeclared watchlists.
+- Tier 1 has baseline-only artifacts and is not represented as a replay.
+- Each authorized replay tier has private incremental artifacts, grading, and provenance. Refused tiers have bounded reasons.
+- Tier 2 has a live exact identifier-verification record, one selected endpoint with nonempty resolved display metadata, and separate allowed-route proof from the exact request policy or a documented stable identity. Missing identifier verification, metadata, route proof, or an unproved cache hit has no success receipt.
+- `log.md` contains the complete matrix, verification date, sources, durations, exact file counts, and failure modes.
+- The credential scan and, for public input, exact live public proof pass. Artifact paths and hashes verify, every publisher holds a matching completed-boundary capability, every owned-lock release is attempted, temporary cleanup failures are aggregated, and verified stale-lock quarantines are retained.
+- A one-line routing verdict exists per task class. No public artifact is created without a separate sanitization and publication review.
